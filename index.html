@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cementerio Caa Catí - V2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --vendido: #d4a843; --vendido-b: #9a7520;
+  --libre: #dff0d5;   --libre-b: #5a9040;
+  --especial: #a0c8d0; --especial-b: #407080;
+  --exterior: #c8c0b0;
+  --interior: #f5f2ea;
+  --highlight: #e8340a;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'DM Sans',sans-serif; background:#ffffff; min-height:100vh; display:flex; flex-direction:column; }
+
+/* HEADER */
+.hdr { background:#1a1209; color:#f4eed8; padding:10px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; position:sticky; top:0; z-index:200; border-bottom:3px solid #8b7355; }
+.htitle small { font-size:8px; letter-spacing:3px; text-transform:uppercase; color:#c4b08a; font-family:'Crimson Text',serif; font-style:italic; display:block; }
+.htitle h1 { font-size:15px; font-weight:700; letter-spacing:2px; }
+.swrap { position:relative; }
+.sbox { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.09); border:1px solid rgba(255,255,255,0.18); border-radius:3px; padding:5px 10px; }
+.sbox input { background:none; border:none; outline:none; color:#f4eed8; font-family:'DM Sans',sans-serif; font-size:13px; width:200px; }
+.sbox input::placeholder { color:rgba(255,255,255,0.35); }
+.sres { position:absolute; top:100%; left:0; right:0; background:#f4eed8; border:1.5px solid #8b7355; border-top:none; border-radius:0 0 4px 4px; max-height:220px; overflow-y:auto; z-index:400; box-shadow:0 6px 20px rgba(0,0,0,0.25); display:none; min-width:280px; }
+.sres.open { display:block; }
+.sri { padding:7px 12px; cursor:pointer; border-bottom:1px solid #c4b08a; display:flex; gap:8px; align-items:center; font-size:12px; }
+.sri:hover { background:rgba(0,0,0,0.05); }
+.sri:last-child { border:none; }
+.sri-num { font-weight:700; min-width:55px; }
+.sri-name { flex:1; }
+.sri-loc { font-size:10px; color:#5a4a30; }
+.stats { display:flex; gap:12px; font-size:11px; }
+.stat { display:flex; align-items:center; gap:4px; }
+.sdot { width:9px; height:9px; border-radius:1px; border:1.5px solid; }
+
+/* LEYENDA */
+.legbar { background:#f4eed8; border-bottom:1.5px solid #c4b08a; padding:6px 18px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:11px; }
+.legbar strong { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:#5a4a30; }
+.litem { display:flex; align-items:center; gap:5px; padding:3px 9px; border-radius:2px; cursor:pointer; border:1px solid transparent; transition:all 0.15s; }
+.litem:hover,.litem.on { border-color:#8b7355; background:rgba(0,0,0,0.05); }
+.lcolor { width:12px; height:12px; border-radius:2px; border:1.5px solid; flex-shrink:0; }
+.minfo-text { font-size:9px; color:#5a4a30; font-family:'Crimson Text',serif; font-style:italic; margin-left:6px; }
+
+/* MAP */
+.map-outer { flex:1; overflow:auto; padding:20px; display:flex; align-items:flex-start; justify-content:center; }
+.map-canvas { position:relative; }
+
+/* LOTE */
+.lote { position:absolute; border:1px solid; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; transition:transform 0.08s, box-shadow 0.08s; border-radius:1px; }
+.lote:hover { transform:scale(1.18); box-shadow:0 3px 12px rgba(0,0,0,0.35); z-index:20; }
+.lote.vendido { background:var(--vendido); border-color:var(--vendido-b); }
+.lote.libre { background:var(--libre); border-color:var(--libre-b); }
+.lote.especial { background:var(--especial); border-color:var(--especial-b); }
+.lote.dim { opacity:0.18; }
+.lote.highlighted { outline:2.5px solid var(--highlight); outline-offset:1px; animation:pulsar 0.9s 4; z-index:30; }
+@keyframes pulsar { 0%,100%{box-shadow:0 0 0 0 rgba(232,52,10,0.5)} 50%{box-shadow:0 0 0 6px rgba(232,52,10,0)} }
+.lote-num { font-family:'DM Sans',sans-serif; font-weight:700; color:#1a1209; line-height:1.1; pointer-events:none; }
+.lote-name { font-family:'Crimson Text',serif; font-style:italic; color:#3a2e1e; pointer-events:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; padding:0 2px; }
+
+/* MAP LABELS */
+.ml { position:absolute; pointer-events:none; font-family:'DM Sans',sans-serif; color:#2a2010; text-align:center; line-height:1.2; }
+.ml.road { font-size:8px; letter-spacing:1px; text-transform:uppercase; color:#4a4030; font-family:'Crimson Text',serif; font-style:italic; }
+.ml.cnum { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#2a2010; white-space:nowrap; }
+.ml.fac { font-size:8px; letter-spacing:1px; text-transform:uppercase; color:#2a2010; }
+.ml.nic { font-size:8px; letter-spacing:1px; text-transform:uppercase; color:#2a5060; }
+
+/* MODAL */
+.ov { position:fixed; inset:0; background:rgba(15,10,3,0.6); backdrop-filter:blur(2px); z-index:500; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.18s; }
+.ov.open { opacity:1; pointer-events:all; }
+.modal { background:#f4eed8; border:2px solid #8b7355; border-radius:4px; width:380px; max-width:96vw; overflow:hidden; transform:translateY(8px); transition:transform 0.18s; box-shadow:0 16px 50px rgba(0,0,0,0.45); }
+.ov.open .modal { transform:translateY(0); }
+.mhdr { background:#1a1209; color:#f4eed8; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
+.mhdr h2 { font-size:14px; font-weight:700; }
+.badge { font-size:9px; padding:2px 7px; border-radius:2px; letter-spacing:1px; text-transform:uppercase; }
+.badge.vendido { background:var(--vendido); color:#1a1209; }
+.badge.libre { background:var(--libre); color:#2c5f2e; }
+.badge.especial { background:var(--especial); color:#204050; }
+.mbody { padding:16px; display:flex; flex-direction:column; gap:11px; }
+.minfo { font-size:11px; color:#5a4a30; font-family:'Crimson Text',serif; background:rgba(0,0,0,0.04); padding:6px 10px; border-radius:2px; border-left:3px solid #c4b08a; }
+.fg { display:flex; flex-direction:column; gap:3px; }
+.fl { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:#5a4a30; }
+.fi { border:1.5px solid #c4b08a; border-radius:2px; padding:7px 9px; font-family:'Crimson Text',serif; font-size:14px; color:#1a1209; background:#ede7d0; outline:none; }
+.fi:focus { border-color:#8b7355; }
+.frow { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.mftr { padding:11px 16px; border-top:1px solid #c4b08a; display:flex; gap:8px; justify-content:flex-end; background:rgba(0,0,0,0.02); }
+.btn { padding:6px 15px; border-radius:2px; border:1.5px solid; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; transition:all 0.12s; }
+.btn-c { background:transparent; border-color:#c4b08a; color:#5a4a30; }
+.btn-c:hover { background:rgba(0,0,0,0.05); }
+.btn-s { background:#2c5f2e; border-color:#2c5f2e; color:white; }
+.btn-s:hover { background:#1a3d1c; }
+.toast { position:fixed; bottom:18px; right:18px; background:#1a1209; color:#f4eed8; padding:8px 15px; border-radius:3px; font-size:11px; transform:translateY(50px); opacity:0; transition:all 0.22s; z-index:900; border-left:4px solid #2c5f2e; }
+.toast.show { transform:translateY(0); opacity:1; }
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="htitle">
+    <small>Municipalidad de Caa Catí · Corrientes</small>
+    <h1>AMPLIACIÓN CEMENTERIO CAA CATÍ</h1>
+  </div>
+  <div class="swrap" id="swrap">
+    <div class="sbox">
+      <span style="color:rgba(255,255,255,0.4);font-size:14px">⌕</span>
+      <input type="text" id="sinput" placeholder="Buscar titular o n° de lote…" autocomplete="off">
+    </div>
+    <div class="sres" id="sres"></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="sdot" style="background:var(--vendido);border-color:var(--vendido-b)"></div><span id="cV">0</span> vendidos</div>
+    <div class="stat"><div class="sdot" style="background:var(--libre);border-color:var(--libre-b)"></div><span id="cL">0</span> libres</div>
+    <div class="stat"><div class="sdot" style="background:var(--especial);border-color:var(--especial-b)"></div><span id="cE">0</span> especiales</div>
+  </div>
+  <div style="display:flex;gap:6px;margin-left:auto;">
+    <button onclick="cargarDesdeSheet()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#f4eed8;padding:5px 11px;border-radius:3px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;">↺ Sincronizar</button>
+    <button onclick="if(confirm('Esto escribe todos los lotes al Sheet. Solo hace falta hacerlo una vez. ¿Continuar?'))inicializarSheet()" style="background:rgba(44,95,46,0.4);border:1px solid #5a9040;color:#f4eed8;padding:5px 11px;border-radius:3px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;">⬆ Inicializar Sheet</button>
+  </div>
+</div>
+
+<div class="legbar">
+  <strong>Leyenda:</strong>
+  <div class="litem" onclick="filtrar('vendido')"><div class="lcolor" style="background:var(--vendido);border-color:var(--vendido-b)"></div>Vendido / Ocupado</div>
+  <div class="litem" onclick="filtrar('libre')"><div class="lcolor" style="background:var(--libre);border-color:var(--libre-b)"></div>Libre / Disponible</div>
+  <div class="litem" onclick="filtrar('especial')"><div class="lcolor" style="background:var(--especial);border-color:var(--especial-b)"></div>Especial / Zona</div>
+  <div class="litem" onclick="filtrar(null)"><div class="lcolor" style="background:#ede7d0;border-color:#8b7355"></div>Todos</div>  
+</div>
+
+<div class="map-outer"><div class="map-canvas" id="mc"></div></div>
+
+<div class="ov" id="ov" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal">
+    <div class="mhdr"><h2 id="mT">Lote</h2><span class="badge" id="mB">Libre</span></div>
+    <div class="mbody">
+      <div class="minfo" id="mI"></div>
+      <div class="fg"><label class="fl">Titular / Familia</label><input class="fi" id="fTit" type="text" placeholder="Ej: Familia Rodríguez"></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Estado</label>
+          <select class="fi" id="fEst" onchange="updB()">
+            <option value="libre">Libre</option>
+            <option value="vendido">Vendido</option>
+            <option value="especial">Especial</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Fecha de venta</label><input class="fi" id="fFec" type="date"></div>
+      </div>
+      <div class="fg"><label class="fl">Observaciones</label><input class="fi" id="fObs" type="text" placeholder="Notas…"></div>
+    </div>
+    <div class="mftr">
+      <button class="btn btn-c" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-s" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div id="loadingBar" style="display:none;position:fixed;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#2c5f2e,#5a9040,#2c5f2e);background-size:200%;animation:loadingAnim 1.2s linear infinite;z-index:999;"></div>
+<style>@keyframes loadingAnim{0%{background-position:200% 0}100%{background-position:-200% 0}}</style>
+
+<script>
+// ══ ESCALA ══
+const M   = 26;        // px por metro
+const SEP = Math.round(0.6*M);
+const WG  = Math.round(4.0*M);
+const WC  = Math.round(1.7*M);
+const H   = Math.round(2.5*M);
+const CW  = Math.round(2.5*M); // ancho de calle interna
+
+// ══ SECCIONES (de abajo hacia arriba: índice 0 = C1-C2, índice 8 = C9-C10) ══
+const SECCIONES = [
+  // 0: C1-C2 — bis 33-48
+  { label:'Entre Calle 1 y Calle 2', filas:[
+    [{n:'40 bis',t:'chico'},{n:'39 bis',t:'grande'},{n:'38 bis',t:'grande'},{n:'37 bis',t:'grande'},{n:'36 bis',t:'grande'},{n:'35 bis',t:'grande'},{n:'34 bis',t:'grande'},{n:'33 bis',t:'grande'}],
+    [{n:'48 bis',t:'chico'},{n:'47 bis',t:'grande'},{n:'46 bis',t:'grande'},{n:'45 bis',t:'grande'},{n:'44 bis',t:'grande'},{n:'43 bis',t:'grande'},{n:'42 bis',t:'grande'},{n:'41 bis',t:'grande'}],
+  ]},
+  // 1: C2-C3 — bis 17-32
+  { label:'Entre Calle 2 y Calle 3', filas:[
+    [{n:'24 bis',t:'chico'},{n:'23 bis',t:'grande'},{n:'22 bis',t:'grande'},{n:'21 bis',t:'grande'},{n:'20 bis',t:'grande'},{n:'19 bis',t:'grande'},{n:'18 bis',t:'grande'},{n:'17 bis',t:'grande'}],
+    [{n:'32 bis',t:'chico'},{n:'31 bis',t:'grande'},{n:'30 bis',t:'grande'},{n:'29 bis',t:'grande'},{n:'28 bis',t:'grande'},{n:'27 bis',t:'grande'},{n:'26 bis',t:'grande'},{n:'25 bis',t:'grande'}],
+  ]},
+  // 2: C3-C4 — bis 1-16
+  { label:'Entre Calle 3 y Calle 4', filas:[
+    [{n:'8 bis',t:'chico'},{n:'7 bis',t:'grande'},{n:'6 bis',t:'grande'},{n:'5 bis',t:'grande'},{n:'4 bis',t:'grande'},{n:'3 bis',t:'grande'},{n:'2 bis',t:'grande'},{n:'1 bis',t:'grande'}],
+    [{n:'16 bis',t:'chico'},{n:'15 bis',t:'grande'},{n:'14 bis',t:'grande'},{n:'13 bis',t:'grande'},{n:'12 bis',t:'grande'},{n:'11 bis',t:'grande'},{n:'10 bis',t:'grande'},{n:'9 bis',t:'grande'}],
+  ]},
+  // 3: C4-C5 — chicos 47-76
+  { label:'Entre Calle 4 y Calle 5', filas:[
+    Array.from({length:15},(_,i)=>({n:String(61-i),t:'chico'})),
+    Array.from({length:15},(_,i)=>({n:String(62+i),t:'chico'})),
+  ]},
+  // 4: C5-C6 — chicos 17-46
+  { label:'Entre Calle 5 y Calle 6', filas:[
+    Array.from({length:15},(_,i)=>({n:String(31-i),t:'chico'})),
+    Array.from({length:15},(_,i)=>({n:String(32+i),t:'chico'})),
+  ]},
+  // 5: C6-C7 — fila sup: 1(chico)+41-47(grandes); fila inf: 2-16(chicos)
+  { label:'Entre Calle 6 y Calle 7', filas:[
+    [{n:'1',t:'chico'},{n:'41',t:'grande'},{n:'42',t:'grande'},{n:'43',t:'grande'},{n:'44',t:'grande'},{n:'45',t:'grande'},{n:'46',t:'grande'},{n:'47',t:'grande'}],
+    Array.from({length:15},(_,i)=>({n:String(2+i),t:'chico'})),
+  ]},
+  // 6: C7-C8 — grandes 27-40, alineados con lote 41
+  { label:'Entre Calle 7 y Calle 8', filas:[
+    Array.from({length:7},(_,i)=>({n:String(27+i),t:'grande'})),
+    Array.from({length:7},(_,i)=>({n:String(40-i),t:'grande'})),
+  ]},
+  // 7: C8-C9 — grandes 13-26, alineados con lote 41
+  { label:'Entre Calle 8 y Calle 9', filas:[
+    Array.from({length:7},(_,i)=>({n:String(13+i),t:'grande'})),
+    Array.from({length:7},(_,i)=>({n:String(26-i),t:'grande'})),
+  ]},
+  // 8: C9-C10 — grandes 1-12, alineados con lote 14
+  { label:'Entre Calle 9 y Calle 10', filas:[
+    Array.from({length:6},(_,i)=>({n:String(1+i),t:'grande'})),
+    Array.from({length:6},(_,i)=>({n:String(12-i),t:'grande'})),
+  ]},
+];
+
+// ══ CONFIGURACIÓN SHEETS ══
+const SCRIPT_URL = '16QPbtrtA572XA9rSUGB4qUup1KTxz96fcmlMdtukrRI';
+
+// ══ DATOS ══
+let DATA = {};
+
+function initDataVacio() {
+  const d = {};
+  SECCIONES.forEach((sec,si) => sec.filas.forEach((fila,fi) => fila.forEach((_,ci) => {
+    d[`s${si}f${fi}c${ci}`] = {titular:'',estado:'libre',fecha:'',obs:''};
+  })));
+  return d;
+}
+
+function getMedidas(tipo) {
+  return tipo === 'grande' ? '4.00 x 2.50 m' : '1.70 x 2.50 m';
+}
+
+async function cargarDesdeSheet() {
+  mostrarCargando(true);
+  try {
+    const res  = await fetch(SCRIPT_URL + '?action=getAll');
+    const json = await res.json();
+    if (json.ok && json.data) {
+      DATA = initDataVacio();
+      Object.keys(json.data).forEach(id => {
+        if (DATA[id] !== undefined) {
+          const d = json.data[id];
+          DATA[id] = { titular:d.titular||'', estado:d.estado||'libre', fecha:d.fecha||'', obs:d.obs||'' };
+        }
+      });
+    } else {
+      DATA = initDataVacio();
+      showToast('Error al leer el Sheet');
+    }
+  } catch(err) {
+    DATA = initDataVacio();
+    showToast('Sin conexion - modo local');
+  }
+  mostrarCargando(false);
+  buildMap();
+}
+
+async function inicializarSheet() {
+  mostrarCargando(true);
+  const todos = [];
+  SECCIONES.forEach((sec,si) => sec.filas.forEach((fila,fi) => fila.forEach((lot,ci) => {
+    const id = `s${si}f${fi}c${ci}`;
+    const d  = DATA[id] || {};
+    todos.push({ id, num:lot.n, seccion:sec.label, medidas:getMedidas(lot.t),
+      titular:d.titular||'', estado:d.estado||'libre', fecha:d.fecha||'', obs:d.obs||'' });
+  })));
+  try {
+    await fetch(SCRIPT_URL, { method:'POST', body:JSON.stringify({action:'saveAll', data:todos}) });
+    showToast('Sheet inicializado correctamente');
+  } catch(e) { showToast('Error al inicializar Sheet'); }
+  mostrarCargando(false);
+}
+
+async function saveData(id) {
+  if (!id) return;
+  const d = DATA[id];
+  let num='', seccion='', medidas='';
+  SECCIONES.forEach((sec,si) => sec.filas.forEach((fila,fi) => fila.forEach((lot,ci) => {
+    if (`s${si}f${fi}c${ci}` === id) { num=lot.n; seccion=sec.label; medidas=getMedidas(lot.t); }
+  })));
+  try {
+    const res  = await fetch(SCRIPT_URL, { method:'POST', body:JSON.stringify({action:'save', data:{id,num,seccion,medidas,...d}}) });
+    const json = await res.json();
+    if (!json.ok) showToast('Error al guardar en Sheet');
+  } catch(e) { showToast('Sin conexion - cambio no guardado en Sheet'); }
+}
+
+function mostrarCargando(visible) {
+  document.getElementById('loadingBar').style.display = visible ? 'block' : 'none';
+}
+
+let filtroActual = null;
+let loteActivo   = null;
+let INDICE       = [];
+
+function el(tag,cls) { const e=document.createElement(tag); if(cls)e.className=cls; return e; }
+function adiv(cls,parent) {
+  const d=el('div',cls);
+  d.style.position='absolute';
+  if(parent) parent.appendChild(d);
+  return d;
+}
+
+function buildMap() {
+  const mc = document.getElementById('mc');
+  mc.innerHTML = '';
+  INDICE = [];
+
+  // ── Dimensiones ──
+  const anchoRef = 15*(WC+SEP) - SEP;
+  const anchoMix = WC + SEP + 7*(WG+SEP) - SEP;
+  const PREDIO_W = Math.max(anchoRef, anchoMix) + 24;
+
+  const SEC_H = 2*H + SEP;
+  const N_SEC = SECCIONES.length; // 9
+
+  // Layout vertical (de arriba hacia abajo):
+  // [CW calle10] [SEC8] [CW] [SEC7] [CW] ... [SEC0] [CW calle1]
+  // = N_SEC secciones + (N_SEC+1) calles = 9 secciones + 10 calles
+  const PREDIO_H = N_SEC*SEC_H + (N_SEC+1)*CW;
+
+  // Márgenes
+  const ML = 100;  // izquierda
+  const MR = 90;   // derecha
+  const MT = 130;  // arriba — espacio para estac + nichos
+
+  const extraIzq = 60;
+  const extraArr = 60;
+  const TOT_W = extraIzq + ML + PREDIO_W + MR;
+  const TOT_H = extraArr + MT + PREDIO_H + 30;
+  mc.style.width  = TOT_W + 'px';
+  mc.style.height = TOT_H + 'px';
+  mc.style.background = 'white';
+
+  // ── Borde del predio (polígono con diagonal sup-izq) ──
+  // La diagonal empieza en (ML, MT + diagH) y termina en (ML + diagW, MT)
+  const diagW = 55; // cuánto avanza horizontalmente la diagonal
+  const diagH = MT * 0.75; // cuánto baja la diagonal — relativo a MT
+  const svgBorde = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svgBorde.setAttribute('width', TOT_W);
+  svgBorde.setAttribute('height', TOT_H);
+  svgBorde.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;';
+
+  // Zona rayada derecha
+  const rayX = extraIzq + ML + PREDIO_W + 70;
+  const rayW = 30;
+  const rayH = 1830;
+  const rayY = 260;
+
+  // Coordenadas absolutas dentro del SVG (con offsets)
+  const sML  = extraIzq + ML;           // x donde empiezan los lotes
+  const sMT  = extraArr + MT;           // y donde empiezan los lotes
+  const izqX = extraIzq + 30;           // línea izquierda: bien a la izquierda
+  const xLote1 = extraIzq + ML + 12 + WC + SEP + WG + SEP;
+  const supY = extraArr - 10;           // línea superior: bien arriba
+  const yCalle9 = sMT + (N_SEC - 8) * (SEC_H + CW); // Y de Calle 9
+
+  svgBorde.innerHTML = `
+    <defs>
+      <pattern id="ray" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+        <line x1="4" y1="0" x2="4" y2="8" stroke="#555" stroke-width="1"/>
+      </pattern>
+      <marker id="flecha" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#222"/>
+      </marker>
+    </defs>
+    <!-- línea superior -->
+    <line x1="${xLote1}" y1="${supY}" x2="${sML+PREDIO_W}" y2="${supY}" stroke="#222" stroke-width="2"/>
+    <line x1="1130" y1="50" x2="1610" y2="50" stroke="#222" stroke-width="2"/>
+    <line x1="${izqX}" y1="${yCalle9}" x2="${xLote1}" y2="${supY}" stroke="#222" stroke-width="2"/>    
+    <!-- línea izquierda: desde Calle 9 hasta abajo -->
+    <line x1="${izqX}" y1="${yCalle9}" x2="${izqX}" y2="${sMT+PREDIO_H}" stroke="#222" stroke-width="2"/>
+    <!-- línea inferior -->
+    <line x1="${izqX}" y1="${sMT+PREDIO_H}" x2="${sML+PREDIO_W}" y2="${sMT+PREDIO_H}" stroke="#222" stroke-width="2"/>
+    <!-- zona rayada derecha -->
+    <rect x="${rayX}" y="${rayY}" width="${rayW}" height="${rayH}" fill="url(#ray)" stroke="#555" stroke-width="1"/>
+    <line x1="${rayX}" y1="${rayY + rayH*0.5}" x2="${rayX+rayW}" y2="${rayY + rayH*0.5}" stroke="#555" stroke-width="1"/>
+    <!-- CRUZ MAYOR con flecha -->
+    <circle cx="1120" cy="2120" r="28" fill="white" stroke="#222" stroke-width="2"/>
+    <text x="1120" y="2115" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" font-weight="700" fill="#111">CRUZ</text>
+    <text x="1120" y="2128" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" font-weight="700" fill="#111">MAYOR</text>
+    <!-- flecha hacia la derecha -->
+    <line x1="1000" y1="2120" x2="1080" y2="2120" stroke="#222" stroke-width="2" marker-end="url(#flecha)"/>
+  `;
+  mc.appendChild(svgBorde);
+
+  // ── Posiciones Y ──
+  function yCalleTop(n) { return extraArr + MT + (N_SEC - (n-1)) * (SEC_H + CW); }
+  function ySecTop(si)  { return yCalleTop(si+2) + CW; }
+
+  // X de referencia
+  const xRef     = extraIzq + ML + 12;
+  const xAlign41 = xRef + WC + SEP;
+  const xAlign14 = xAlign41 + WG + SEP;
+
+  function xSecStart(si) {
+    if (si === 8) return xAlign14;
+    if (si === 7 || si === 6) return xAlign41;
+    return xRef;
+  }
+    
+  // ── RECTÁNGULO NICHOS ──
+  const nichoX     = 400;   // línea 314
+  const nichoAncho = 650;   // línea 315 — reemplazá toda la fórmula por este número fijo
+  const nichoY     = 70;    // línea 316 — reemplazá "supY + 20" por 53
+  const nichoAlto  = 65;    // línea 317 — ya debería estar bien
+
+  const nichoRect = document.createElement('div');
+  nichoRect.style.position   = 'absolute';
+  nichoRect.style.left       = nichoX + 'px';
+  nichoRect.style.top        = nichoY + 'px';
+  nichoRect.style.width      = nichoAncho + 'px';
+  nichoRect.style.height     = nichoAlto + 'px';
+  nichoRect.style.background = 'rgba(160,200,210,0.35)';
+  nichoRect.style.border     = '2px solid #407080';
+  nichoRect.style.display    = 'flex';
+  nichoRect.style.alignItems = 'center';
+  nichoRect.style.justifyContent = 'center';
+  nichoRect.style.pointerEvents  = 'none';
+  nichoRect.style.zIndex     = '5';
+  mc.appendChild(nichoRect);
+
+  const nichoLbl = document.createElement('span');
+  nichoLbl.textContent = 'NICHOS APROX 50';
+  nichoLbl.style.cssText = `
+    font-family:'DM Sans',sans-serif;
+    font-weight:900;
+    font-size:16px;
+    letter-spacing:2px;
+    color:#1a3540;
+    text-align:center;
+    pointer-events:none;
+  `;
+  nichoRect.appendChild(nichoLbl);
+  mc.appendChild(nichoRect);
+
+  // ── RECTÁNGULO 2 ──
+  const rect2X      = 1150;
+  const rect2Ancho  = 100;
+  const rect2Y      = 70;
+  const rect2Alto   = 65;
+  const rect2       = document.createElement('div');
+  rect2.style.position        = 'absolute';
+  rect2.style.left            = rect2X + 'px';
+  rect2.style.top             = rect2Y + 'px';
+  rect2.style.width           = rect2Ancho + 'px';
+  rect2.style.height          = rect2Alto + 'px';
+  rect2.style.background      = 'rgba(212,168,67,0.35)';  // ← color diferente
+  rect2.style.border          = '2px solid #9a7520';
+  rect2.style.display         = 'flex';
+  rect2.style.alignItems      = 'center';
+  rect2.style.justifyContent  = 'center';
+  rect2.style.pointerEvents   = 'none';
+  rect2.style.zIndex          = '5';
+  mc.appendChild(rect2);
+  const rect2Lbl = document.createElement('span');
+  rect2Lbl.textContent = 'BAÑOS';
+  rect2Lbl.style.cssText = `
+    font-family:'DM Sans',sans-serif;
+    font-weight:900;
+    font-size:16px;
+    letter-spacing:2px;
+    color:#1a3540;
+    text-align:center;
+    pointer-events:none;
+  `;
+  rect2.appendChild(rect2Lbl);
+
+  // ── RECTÁNGULO 3 ──
+  const rect3X      = 400;
+  const rect3Ancho  = 650;
+  const rect3Y      = -20;
+  const rect3Alto   = 65;
+  const rect3       = document.createElement('div');
+  rect3.style.position        = 'absolute';
+  rect3.style.left            = rect3X + 'px';
+  rect3.style.top             = rect3Y + 'px';
+  rect3.style.width           = rect3Ancho + 'px';
+  rect3.style.height          = rect3Alto + 'px';
+  rect3.style.background      = 'rgba(210,80,80,0.35)';
+  rect3.style.border          = '2px solid #a03030';
+  rect3.style.display         = 'flex';
+  rect3.style.alignItems      = 'center';
+  rect3.style.justifyContent  = 'center';
+  rect3.style.pointerEvents   = 'none';
+  rect3.style.zIndex          = '5';
+  mc.appendChild(rect3);
+  const rect3Lbl = document.createElement('span');
+  rect3Lbl.textContent = 'ESTACIONAMIENTOS';
+  rect3Lbl.style.cssText = `
+    font-family:'DM Sans',sans-serif;
+    font-weight:900;
+    font-size:16px;
+    letter-spacing:2px;
+    color:#1a3540;
+    text-align:center;
+    pointer-events:none;
+  `;
+  rect3.appendChild(rect3Lbl);
+
+  // ── CALLE PUBLICA — texto vertical grande a la izquierda ──
+  const lblCPub = document.createElement('div');
+  lblCPub.textContent = 'CALLE PUBLICA (TIERRA)';
+  lblCPub.style.position      = 'absolute';
+  lblCPub.style.left          = '60px';
+  lblCPub.style.top           = '50%';
+  lblCPub.style.transform     = 'translateX(-50%) rotate(-90deg)';
+  lblCPub.style.transformOrigin = 'center center';
+  lblCPub.style.whiteSpace    = 'nowrap';
+  lblCPub.style.fontFamily    = "'DM Sans',sans-serif";
+  lblCPub.style.fontSize      = '22px';
+  lblCPub.style.fontWeight    = '900';
+  lblCPub.style.letterSpacing = '4px';
+  lblCPub.style.color         = '#111';
+  mc.appendChild(lblCPub);
+
+  // ── CALLE VERTICAL 2 ──
+  const lblCalle2 = document.createElement('div');
+  lblCalle2.textContent = 'CALLE';
+  lblCalle2.style.position      = 'absolute';
+  lblCalle2.style.left          = '130px';   // ← más a la derecha que la primera
+  lblCalle2.style.top           = '50%';
+  lblCalle2.style.transform     = 'translateX(-50%) rotate(-90deg)';
+  lblCalle2.style.transformOrigin = 'center center';
+  lblCalle2.style.whiteSpace    = 'nowrap';
+  lblCalle2.style.fontFamily    = "'DM Sans',sans-serif";
+  lblCalle2.style.fontSize      = '17px';   // ← más chico
+  lblCalle2.style.fontWeight    = '900';
+  lblCalle2.style.letterSpacing = '4px';
+  lblCalle2.style.color         = '#111';
+  mc.appendChild(lblCalle2);
+
+  // ── CALLE VERTICAL 3 ──
+  const lblCalle3 = document.createElement('div');
+  lblCalle3.textContent = 'CALLE';
+  lblCalle3.style.position      = 'absolute';
+  lblCalle3.style.left          = '1100px';   // ← más a la derecha aún
+  lblCalle3.style.top           = '50%';    // ← más arriba
+  lblCalle3.style.transform     = 'translateX(-50%) rotate(-90deg)';
+  lblCalle3.style.transformOrigin = 'center center';
+  lblCalle3.style.whiteSpace    = 'nowrap';
+  lblCalle3.style.fontFamily    = "'DM Sans',sans-serif";
+  lblCalle3.style.fontSize      = '17px';
+  lblCalle3.style.fontWeight    = '900';
+  lblCalle3.style.letterSpacing = '4px';
+  lblCalle3.style.color         = '#111';
+  mc.appendChild(lblCalle3);
+
+  // ── Labels CALLE 1..10 ──
+  for (let n=1; n<=10; n++) {
+    const yC = yCalleTop(n);
+    const lbl = adiv('ml cnum',mc);
+    lbl.textContent = `CALLE ${n}`;
+    lbl.style.cssText = `left:${extraIzq+ML+PREDIO_W/2-32}px;top:${yC+CW/2-7}px;font-size:17px;font-weight:700;`;
+  }
+
+  // ── Lotes ──
+  let nichosX1=0, nichosX2=0;
+
+  SECCIONES.forEach((sec, si) => {
+    const yTop   = ySecTop(si);
+    const xStart = xSecStart(si);
+
+    sec.filas.forEach((fila, fi) => {
+      const yFila = yTop + fi*(H+SEP);
+      let xCur = xStart;
+
+      fila.forEach((lot, ci) => {
+        const id = `s${si}f${fi}c${ci}`;
+        const d  = DATA[id] || {titular:'',estado:'libre',fecha:'',obs:''};
+        const w  = lot.t==='grande' ? WG : WC;
+
+        const lotEl = adiv(`lote ${d.estado}`,mc);
+        if (filtroActual && d.estado!==filtroActual) lotEl.classList.add('dim');
+        lotEl.id = `lote-${id}`;
+        lotEl.style.cssText += `left:${xCur}px;top:${yFila}px;width:${w}px;height:${H}px;`;
+
+        const numEl = el('span','lote-num');
+        numEl.textContent = lot.n;
+        const nl = lot.n.length;
+        const isBis = lot.n.includes('bis');
+        numEl.style.fontSize = isBis ? (nl<=5?'14px':'13px') : (nl<=2?'14px':'12px');
+        lotEl.appendChild(numEl);
+
+        if (d.titular) {
+          const nm = el('span','lote-name');
+          nm.textContent = d.titular.replace(/^Flia\.?\s*/i,'');
+          nm.style.fontSize = '7px';
+          lotEl.appendChild(nm);
+        }
+
+        lotEl.addEventListener('click', ()=>abrirModal(id,lot,sec.label));
+        INDICE.push({id, num:lot.n, titular:d.titular, secLabel:sec.label});
+
+        if (si===8 && fi===0 && ci===1) nichosX1 = xCur;
+        if (si===8 && fi===0 && ci===5) nichosX2 = xCur + w;
+
+        xCur += w + SEP;
+      });
+    });
+  });
+
+  actualizarStats();
+}
+
+function actualizarStats() {
+  let v=0,l=0,e=0;
+  Object.values(DATA).forEach(d=>{
+    if(d.estado==='vendido')v++;
+    else if(d.estado==='especial')e++;
+    else l++;
+  });
+  document.getElementById('cV').textContent=v;
+  document.getElementById('cL').textContent=l;
+  document.getElementById('cE').textContent=e;
+}
+
+let modalLotInfo=null;
+function abrirModal(id,lot,secLabel) {
+  loteActivo=id; modalLotInfo=lot;
+  const d=DATA[id]||{};
+  const tipoStr=lot.t==='grande'?'4.00 × 2.50 m':'1.70 × 2.50 m';
+  document.getElementById('mT').textContent=`Lote N° ${lot.n}`;
+  document.getElementById('mI').innerHTML=`<strong>${tipoStr}</strong> &nbsp;·&nbsp; ${secLabel}`;
+  document.getElementById('fTit').value=d.titular||'';
+  document.getElementById('fEst').value=d.estado||'libre';
+  document.getElementById('fFec').value=d.fecha||'';
+  document.getElementById('fObs').value=d.obs||'';
+  updB();
+  document.getElementById('ov').classList.add('open');
+}
+function updB(){
+  const e=document.getElementById('fEst').value;
+  const b=document.getElementById('mB');
+  b.textContent={libre:'Libre',vendido:'Vendido',especial:'Especial'}[e];
+  b.className=`badge ${e}`;
+}
+function cerrarModal(){document.getElementById('ov').classList.remove('open');loteActivo=null;}
+async function guardar(){
+  if(!loteActivo)return;
+  DATA[loteActivo]={
+    titular:document.getElementById('fTit').value.trim(),
+    estado:document.getElementById('fEst').value,
+    fecha:document.getElementById('fFec').value,
+    obs:document.getElementById('fObs').value.trim(),
+  };
+  cerrarModal();
+  buildMap();
+  showToast('Guardando...');
+  await saveData(loteActivo);
+  showToast('Guardado');
+}
+
+document.getElementById('sinput').addEventListener('input',function(){
+  const q=this.value.trim().toLowerCase();
+  const res=document.getElementById('sres');
+  document.querySelectorAll('.lote.highlighted').forEach(e=>e.classList.remove('highlighted'));
+  if(!q){res.classList.remove('open');return;}
+  const hits=INDICE.filter(l=>(l.titular&&l.titular.toLowerCase().includes(q))||l.num.toLowerCase().includes(q)).slice(0,8);
+  res.innerHTML=hits.length
+    ?hits.map(l=>`<div class="sri" onclick="irA('${l.id}')"><span class="sri-num">N° ${l.num}</span><span class="sri-name">${l.titular||'—'}</span><span class="sri-loc">${l.secLabel}</span></div>`).join('')
+    :`<div class="sri" style="color:#888;font-style:italic">Sin resultados</div>`;
+  res.classList.add('open');
+});
+document.addEventListener('click',e=>{if(!document.getElementById('swrap').contains(e.target))document.getElementById('sres').classList.remove('open');});
+function irA(id){
+  document.getElementById('sres').classList.remove('open');
+  document.getElementById('sinput').value='';
+  const el=document.getElementById(`lote-${id}`);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('highlighted');setTimeout(()=>el.classList.remove('highlighted'),4000);}
+}
+function filtrar(e){filtroActual=e;buildMap();}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+cargarDesdeSheet();
+</script>
+</body>
+</html>
