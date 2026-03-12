@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cementerio Caa Catí</title>
+<title>Cementerio Caa Catí - V2</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -217,7 +217,7 @@ const SECCIONES = [
 ];
 
 // ══ CONFIGURACIÓN SHEETS ══
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzTHhHPmpZuH5Jbmwb952YPci5_TtSTh4AnXdOR8w0N-646cztiLiyOYrEfFjdQb1c/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyvJITaVruk1N8oGn_cSQVdJ0K_G5rZuGvIFpbunCvWj0VclLSmwA5QJDyZAA3FgC2P/exec';
 
 // ══ DATOS ══
 let DATA = {};
@@ -269,11 +269,14 @@ async function inicializarSheet() {
       titular:d.titular||'', estado:d.estado||'libre', fecha:d.fecha||'', obs:d.obs||'' });
   })));
   try {
-    const url = SCRIPT_URL + '?action=saveAll&data=' + encodeURIComponent(JSON.stringify(todos));
-    const res = await fetch(url);
-    const json = await res.json();
-    if (json.ok) showToast('Sheet inicializado correctamente');
-    else showToast('Error: ' + (json.error||'desconocido'));
+    // POST con no-cors — no podemos leer la respuesta pero sí escribe en el Sheet
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action:'saveAll', data:todos })
+    });
+    showToast('Sheet inicializado — esperá 5 segundos y sincronizá');
   } catch(e) { showToast('Error al inicializar Sheet'); }
   mostrarCargando(false);
 }
@@ -286,9 +289,9 @@ async function saveData(id) {
     if (`s${si}f${fi}c${ci}` === id) { num=lot.n; seccion=sec.label; medidas=getMedidas(lot.t); }
   })));
   try {
+    // GET para guardar un lote — no tiene límite de tamaño problemático
     const payload = encodeURIComponent(JSON.stringify({id,num,seccion,medidas,...d}));
-    const url = SCRIPT_URL + '?action=save&data=' + payload;
-    const res  = await fetch(url);
+    const res  = await fetch(SCRIPT_URL + '?action=save&data=' + payload);
     const json = await res.json();
     if (!json.ok) showToast('Error al guardar en Sheet');
   } catch(e) { showToast('Sin conexion - cambio no guardado en Sheet'); }
