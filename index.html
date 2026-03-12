@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cementerio Caa Catí - V2</title>
+<title>Cementerio Caa Catí</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -59,7 +59,7 @@ body { font-family:'DM Sans',sans-serif; background:#ffffff; min-height:100vh; d
 .lote.highlighted { outline:2.5px solid var(--highlight); outline-offset:1px; animation:pulsar 0.9s 4; z-index:30; }
 @keyframes pulsar { 0%,100%{box-shadow:0 0 0 0 rgba(232,52,10,0.5)} 50%{box-shadow:0 0 0 6px rgba(232,52,10,0)} }
 .lote-num { font-family:'DM Sans',sans-serif; font-weight:700; color:#1a1209; line-height:1.1; pointer-events:none; }
-.lote-name { font-family:'DM Sans',sans-serif; color:#3a2e1e; pointer-events:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; padding:0 2px; }
+.lote-name { font-family:'Crimson Text',serif; font-style:italic; color:#3a2e1e; pointer-events:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; padding:0 2px; }
 
 /* MAP LABELS */
 .ml { position:absolute; pointer-events:none; font-family:'DM Sans',sans-serif; color:#2a2010; text-align:center; line-height:1.2; }
@@ -269,8 +269,11 @@ async function inicializarSheet() {
       titular:d.titular||'', estado:d.estado||'libre', fecha:d.fecha||'', obs:d.obs||'' });
   })));
   try {
-    await fetch(SCRIPT_URL, { method:'POST', body:JSON.stringify({action:'saveAll', data:todos}) });
-    showToast('Sheet inicializado correctamente');
+    const url = SCRIPT_URL + '?action=saveAll&data=' + encodeURIComponent(JSON.stringify(todos));
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json.ok) showToast('Sheet inicializado correctamente');
+    else showToast('Error: ' + (json.error||'desconocido'));
   } catch(e) { showToast('Error al inicializar Sheet'); }
   mostrarCargando(false);
 }
@@ -283,7 +286,9 @@ async function saveData(id) {
     if (`s${si}f${fi}c${ci}` === id) { num=lot.n; seccion=sec.label; medidas=getMedidas(lot.t); }
   })));
   try {
-    const res  = await fetch(SCRIPT_URL, { method:'POST', body:JSON.stringify({action:'save', data:{id,num,seccion,medidas,...d}}) });
+    const payload = encodeURIComponent(JSON.stringify({id,num,seccion,medidas,...d}));
+    const url = SCRIPT_URL + '?action=save&data=' + payload;
+    const res  = await fetch(url);
     const json = await res.json();
     if (!json.ok) showToast('Error al guardar en Sheet');
   } catch(e) { showToast('Sin conexion - cambio no guardado en Sheet'); }
@@ -589,7 +594,7 @@ function buildMap() {
         if (d.titular) {
           const nm = el('span','lote-name');
           nm.textContent = d.titular.replace(/^Flia\.?\s*/i,'');
-          nm.style.fontSize = '10px';
+          nm.style.fontSize = '7px';
           lotEl.appendChild(nm);
         }
 
