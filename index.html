@@ -653,7 +653,8 @@ function updB(){
 function cerrarModal(){document.getElementById('ov').classList.remove('open');loteActivo=null;}
 async function guardar(){
   if(!loteActivo)return;
-  DATA[loteActivo]={
+  const idAGuardar = loteActivo;
+  DATA[idAGuardar]={
     titular:document.getElementById('fTit').value.trim(),
     estado:document.getElementById('fEst').value,
     fecha:document.getElementById('fFec').value,
@@ -662,8 +663,8 @@ async function guardar(){
   cerrarModal();
   buildMap();
   showToast('Guardando...');
-  await saveData(loteActivo);
-  showToast('Guardado');
+  await saveData(idAGuardar);
+  showToast('Guardado en Sheet ✓');
 }
 
 document.getElementById('sinput').addEventListener('input',function(){
