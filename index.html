@@ -291,10 +291,13 @@ async function saveData(id) {
   try {
     // GET para guardar un lote — no tiene límite de tamaño problemático
     const payload = encodeURIComponent(JSON.stringify({id,num,seccion,medidas,...d}));
-    const res  = await fetch(SCRIPT_URL + '?action=save&data=' + payload);
+    const url = SCRIPT_URL + '?action=save&data=' + payload;
+    console.log('saveData URL:', url);
+    const res = await fetch(url);
+    console.log('saveData status:', res.status);
     const json = await res.json();
     if (!json.ok) showToast('Error al guardar en Sheet');
-  } catch(e) { showToast('Sin conexion - cambio no guardado en Sheet'); }
+  } catch(e) { console.error('saveData catch:', e); showToast('Error: ' + e.message); }
 }
 
 function mostrarCargando(visible) {
