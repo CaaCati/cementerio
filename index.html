@@ -46,8 +46,9 @@ body { font-family:'DM Sans',sans-serif; background:#ffffff; min-height:100vh; d
 .minfo-text { font-size:9px; color:#5a4a30; font-family:'Crimson Text',serif; font-style:italic; margin-left:6px; }
 
 /* MAP */
-.map-outer { flex:1; overflow:auto; padding:20px; display:flex; align-items:flex-start; justify-content:center; }
-.map-canvas { position:relative; }
+.map-outer { flex:1; overflow:hidden; padding:0; display:flex; align-items:flex-start; justify-content:center; position:relative; cursor:grab; user-select:none; }
+.map-outer.grabbing { cursor:grabbing; }
+.map-canvas { position:relative; transform-origin:0 0; will-change:transform; }
 
 /* LOTE */
 .lote { position:absolute; border:1px solid; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; transition:transform 0.08s, box-shadow 0.08s; border-radius:1px; }
@@ -694,6 +695,124 @@ function filtrar(e){filtroActual=e;buildMap();}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 cargarDesdeSheet();
+
+// ── ZOOM & PAN ──────────────────────────────────────────────
+(function(){
+  const outer = document.querySelector('.map-outer');
+  const canvas = document.getElementById('mc');
+  let scale = 1, tx = 20, ty = 20;
+  let minScale = 0.3, maxScale = 3;
+
+  function applyTransform() {
+    canvas.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+  }
+
+  function clampTx() {
+    // sin límite duro, pero dejamos un margen mínimo
+  }
+
+  applyTransform();
+
+  // Rueda del mouse → zoom centrado en cursor
+  outer.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    const rect = outer.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const delta = e.deltaY < 0 ? 1.12 : 0.89;
+    const newScale = Math.min(maxScale, Math.max(minScale, scale * delta));
+    tx = mx - (mx - tx) * (newScale / scale);
+    ty = my - (my - ty) * (newScale / scale);
+    scale = newScale;
+    applyTransform();
+  }, { passive: false });
+
+  // Arrastrar con mouse
+  let dragging = false, startX, startY, startTx, startTy;
+  outer.addEventListener('mousedown', function(e) {
+    if (e.target.closest('.lote')) return; // no interferir con click en lote
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    startTx = tx; startTy = ty;
+    outer.classList.add('grabbing');
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    tx = startTx + (e.clientX - startX);
+    ty = startTy + (e.clientY - startY);
+    applyTransform();
+  });
+  window.addEventListener('mouseup', function() {
+    dragging = false;
+    outer.classList.remove('grabbing');
+  });
+
+  // Pinch zoom en celular
+  let lastDist = null, lastMidX, lastMidY;
+  outer.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+      lastDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const rect = outer.getBoundingClientRect();
+      lastMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+      lastMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+    }
+  }, { passive: true });
+
+  outer.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (lastDist) {
+        const delta = dist / lastDist;
+        const newScale = Math.min(maxScale, Math.max(minScale, scale * delta));
+        tx = lastMidX - (lastMidX - tx) * (newScale / scale);
+        ty = lastMidY - (lastMidY - ty) * (newScale / scale);
+        scale = newScale;
+        applyTransform();
+      }
+      lastDist = dist;
+    }
+  }, { passive: false });
+
+  outer.addEventListener('touchend', function(e) {
+    if (e.touches.length < 2) lastDist = null;
+  }, { passive: true });
+
+  // Arrastrar con un dedo en celular
+  let touchDrag = false, touchStartX, touchStartY, touchStartTx, touchStartTy;
+  outer.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+      touchDrag = true;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchStartTx = tx; touchStartTy = ty;
+    }
+  }, { passive: true });
+
+  outer.addEventListener('touchmove', function(e) {
+    if (touchDrag && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - touchStartX;
+      const dy = e.touches[0].clientY - touchStartY;
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        e.preventDefault();
+        tx = touchStartTx + dx;
+        ty = touchStartTy + dy;
+        applyTransform();
+      }
+    }
+  }, { passive: false });
+
+  outer.addEventListener('touchend', function() {
+    touchDrag = false;
+  }, { passive: true });
+})();
+
 </script>
 </body>
 </html>
