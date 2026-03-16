@@ -116,8 +116,7 @@ body { font-family:'DM Sans',sans-serif; background:#ffffff; min-height:100vh; d
     <div class="stat"><div class="sdot" style="background:var(--especial);border-color:var(--especial-b)"></div><span id="cE">0</span> especiales</div>
   </div>
   <div style="display:flex;gap:6px;margin-left:auto;">
-    <button onclick="cargarDesdeSheet()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#f4eed8;padding:5px 11px;border-radius:3px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;">↺ Sincronizar</button>
-    <button onclick="if(confirm('Esto escribe todos los lotes al Sheet. Solo hace falta hacerlo una vez. ¿Continuar?'))inicializarSheet()" style="background:rgba(44,95,46,0.4);border:1px solid #5a9040;color:#f4eed8;padding:5px 11px;border-radius:3px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;">⬆ Inicializar Sheet</button>
+    <button onclick="cargarDesdeSheet()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#f4eed8;padding:5px 11px;border-radius:3px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;">↺ Sincronizar</button>    
   </div>
 </div>
 
@@ -606,7 +605,12 @@ function buildMap() {
             nm.style.fontSize = '9px';
             lotEl.appendChild(nm);
           } else {
-            lotEl.title = d.titular;
+            lotEl.title = d.titular; 
+            lotEl.addEventListener('touchstart', function(e) {
+                                          if (e.touches.length === 1) {
+                                                  showToast(d.titular);
+                                          }
+            }, { passive: true });
           }
         }
 
